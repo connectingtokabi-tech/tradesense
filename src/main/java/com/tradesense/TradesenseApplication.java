@@ -1,0 +1,13 @@
+package com.tradesense;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class TradesenseApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(TradesenseApplication.class, args);
+	}
+
+}
