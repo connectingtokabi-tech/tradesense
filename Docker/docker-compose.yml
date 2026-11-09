@@ -1,0 +1,41 @@
+version: '3.8'
+
+# This file is only for managing the PostgreSQL database.
+# Run `docker-compose up -d` from this directory to start the database.
+
+services:
+  postgres:
+    image: postgres:13
+    container_name: tradesense
+    command:
+      - postgres
+      - -c
+      - wal_level=logical
+      - -c
+      - max_wal_senders=10
+      - -c
+      - max_replication_slots=10
+      - -c
+      - wal_keep_size=1GB
+    environment:
+      POSTGRES_DB:  tradesense
+      POSTGRES_USER: tradesense
+      POSTGRES_PASSWORD: thekabi#123
+    ports:
+      # This exposes the database to your host machine on port 5432
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - graphlink-net
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  graphlink-net:
+    # By explicitly naming the network, we prevent Docker Compose from adding a prefix.
+    name: graphlink-net
+    driver: bridge

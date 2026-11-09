@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: tradesense
+
+  datasource:
+    url: ${TRADESENSE_DATABASE_URL:jdbc:postgresql://localhost:5432/tradesense}
+    username: ${TRADESENSE_DATABASE_USERNAME:tradesense}
+    password: ${TRADESENSE_DATABASE_PASSWORD:thekabi#123}
+    driver-class-name: org.postgresql.Driver
+
+  liquibase:
+    enabled: true
+    change-log: classpath:/db/changelog/db.changelog-master.xml
+    url: ${TRADESENSE_DATABASE_URL:jdbc:postgresql://localhost:5432/tradesense}
+    user: ${TRADESENSE_DATABASE_USERNAME:tradesense}
+    password: ${TRADESENSE_DATABASE_PASSWORD:thekabi#123}
+
+management:
+  tracing:
+    propagation:
+      type: W3C
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"

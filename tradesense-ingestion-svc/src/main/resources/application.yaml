@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: tradesense-ingestion-svc
+  kafka:
+    template:
+      observation-enabled: true
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/tradesense
+    username: tradesense
+    password: "thekabi#123"
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.type.json_format_mapper: jackson3
+
+  liquibase:
+    enabled: false
+
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: never
+
+server:
+  port: ${SERVER_PORT:5051}
+  forward-headers-strategy: framework
+
+springdoc:
+  swagger-ui:
+    url: /v3/api-docs
+    config-url: /v3/api-docs/swagger-config
+    disable-swagger-default-url: true
+
+tradesense:
+  storage:
+    directory: ${TRADE_FILE_STORAGE_DIRECTORY:./data/trade-files}
+
+management:
+  tracing:
+    propagation:
+      type: W3C
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"

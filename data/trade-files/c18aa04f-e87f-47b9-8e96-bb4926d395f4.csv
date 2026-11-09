@@ -1,0 +1,7 @@
+trade_id,trade_date,customer,product,quantity,price,currency
+T-1001,2026-11-07,ACME Ltd,IBM,100,125.50,USD
+T-1002,2026-11-07,Northwind,Apple,200,210.00,USD
+T-1003,2026-11-07,Contoso,Microsoft,75,315.25,USD
+T-1004,2026-11-07,Globex,Google,150,180.75,USD
+T-1005,2026-11-07,Initech,Amazon,300,145.10,USD
+

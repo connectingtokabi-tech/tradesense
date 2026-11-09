@@ -1,0 +1,90 @@
+package com.tradesense.validator.rules
+
+import com.tradesense.common.model.entity.Trade
+import com.tradesense.common.model.entity.TradeInstrumentation
+import com.tradesense.common.model.dto.TradeRuleViolation
+import com.tradesense.common.model.dto.TradeValidationRequest
+import com.tradesense.validator.application.TradeValidationResult
+import java.math.BigDecimal
+
+global TradeValidationResult validationResult
+
+rule "Trade booking system is required"
+    when
+        $request : TradeValidationRequest()
+        eval($request.trade() == null
+            || $request.trade().getBookingSystem() == null
+            || $request.trade().getBookingSystem().isBlank())
+    then
+        validationResult.addViolation(new TradeRuleViolation(
+            "booking-system-required", "1.0", "BOOKING_SYSTEM_REQUIRED",
+            "Booking system is required"));
+end
+
+rule "Trade ID must be positive"
+    when
+        $request : TradeValidationRequest()
+        eval($request.trade() != null
+            && ($request.trade().getTradeId() == null || $request.trade().getTradeId() <= 0))
+    then
+        validationResult.addViolation(new TradeRuleViolation(
+            "trade-id-positive", "1.0", "TRADE_ID_INVALID",
+            "Trade ID must be a positive integer"));
+end
+
+rule "Trade source type is required"
+    when
+        $request : TradeValidationRequest()
+        eval($request.trade() != null && $request.trade().getSourceType() == null)
+    then
+        validationResult.addViolation(new TradeRuleViolation(
+            "trade-source-type-required", "1.0", "TRADE_SOURCE_TYPE_REQUIRED",
+            "Trade source type is required"));
+end
+
+rule "Instrument is required"
+    when
+        $request : TradeValidationRequest()
+        eval($request.instrumentation() == null
+            || $request.instrumentation().getInstrumentId() == null
+            || $request.instrumentation().getInstrumentId().isBlank())
+    then
+        validationResult.addViolation(new TradeRuleViolation(
+            "instrument-required", "1.0", "INSTRUMENT_REQUIRED",
+            "Instrument is required"));
+end
+
+rule "Quantity must be positive"
+    when
+        $request : TradeValidationRequest()
+        eval($request.instrumentation() != null
+            && ($request.instrumentation().getQuantity() == null
+                || $request.instrumentation().getQuantity() <= 0))
+    then
+        validationResult.addViolation(new TradeRuleViolation(
+            "quantity-positive", "1.0", "TRADE_QUANTITY_INVALID",
+            "Trade quantity must be a positive integer"));
+end
+
+rule "Trade price must be positive"
+    when
+        $request : TradeValidationRequest()
+        eval($request.instrumentation() != null
+            && ($request.instrumentation().getTradePrice() == null
+                || $request.instrumentation().getTradePrice().compareTo(BigDecimal.ZERO) <= 0))
+    then
+        validationResult.addViolation(new TradeRuleViolation(
+            "trade-price-positive", "1.0", "TRADE_PRICE_INVALID",
+            "Trade price must be positive"));
+end
+
+rule "Trade timestamp is required"
+    when
+        $request : TradeValidationRequest()
+        eval($request.instrumentation() != null
+            && $request.instrumentation().getTradeTimestamp() == null)
+    then
+        validationResult.addViolation(new TradeRuleViolation(
+            "trade-timestamp-required", "1.0", "TRADE_TIMESTAMP_REQUIRED",
+            "Trade timestamp is required"));
+end

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <include file="db/changelog/changes/001-create-ingestion-tables.sql"/>
+    <include file="db/changelog/changes/002-create-trade-tables.sql"/>
+    <include file="db/changelog/changes/003-create-event-tables.sql"/>
+    <include file="db/changelog/changes/004-create-indexes.sql"/>
+    <include file="db/changelog/changes/005-create-spring-batch-tables.sql"/>
+    <include file="db/changelog/changes/006-add-traceparent.sql"/>
+    <include file="db/changelog/changes/007-allow-invalid-trade-data.sql"/>
+</databaseChangeLog>

@@ -1,0 +1,17 @@
+{
+  "sourceSystem": "TEST_MARKET_FEED",
+  "sourceEventId": "test-intraday-event-0001",
+  "tradeInfo": {
+    "bookingSystem": "MUREX",
+    "tradeId": 987654321,
+    "sourceType": "INTRADAY",
+    "tradeStatus": "VALID",
+    "instrument": "EUR/USD",
+    "tradeDate": "2026-11-07",
+    "valueDate": "2026-11-10",
+    "quantity": 1000000,
+    "price": 1.08425,
+    "currency": "EUR",
+    "counterparty": "TEST_COUNTERPARTY"
+  }
+}

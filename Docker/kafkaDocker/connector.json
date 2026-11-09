@@ -1,0 +1,30 @@
+{
+  "name": "ingestion-record-cdc",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "host.docker.internal",
+    "database.port": "5432",
+    "database.user": "tradesense",
+    "database.password": "thekabi#123",
+    "database.dbname": "tradesense",
+    "database.server.name": "tradesense",
+    "topic.prefix": "tradesense-cdc",
+    "schema.include.list": "public",
+    "table.include.list": "public.ingestion_record",
+    "plugin.name": "pgoutput",
+    "publication.autocreate.mode": "filtered",
+    "slot.name": "debezium_ingestion_record",
+    "transforms": "unwrap,traceHeader,router",
+    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+    "transforms.traceHeader.type": "org.apache.kafka.connect.transforms.HeaderFrom$Value",
+    "transforms.traceHeader.fields": "traceparent",
+    "transforms.traceHeader.headers": "traceparent",
+    "transforms.traceHeader.operation": "copy",
+    "transforms.router.type": "org.apache.kafka.connect.transforms.RegexRouter",
+    "transforms.router.regex": ".*",
+    "transforms.router.replacement": "tradesense-cdc",
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false"
+  }
+}

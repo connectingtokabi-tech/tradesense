@@ -1,0 +1,284 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: tradesense-postgres
+    environment:
+      POSTGRES_DB: tradesense
+      POSTGRES_USER: tradesense
+      POSTGRES_PASSWORD: thekabi#123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - tradesense-net
+
+  kafka-1:
+    image: bitnami/kafka:3.5.0
+    container_name: tradesense-kafka-1
+    ports:
+      - "29092:29092"
+      - "9092:9092"
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: "broker,controller"
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka-1:9093,2@kafka-2:9093"
+      KAFKA_KRAFT_CLUSTER_ID: "6MOTDVUETh61ntQjswQdUQ"
+      KAFKA_CFG_LISTENERS: "INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093"
+      KAFKA_CFG_ADVERTISED_LISTENERS: "INTERNAL://kafka-1:9092,EXTERNAL://localhost:29092"
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_CFG_NUM_PARTITIONS: 1
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+    volumes:
+      - kafka_1_data:/bitnami/kafka
+    restart: unless-stopped
+    networks:
+      - tradesense-net
+
+  kafka-2:
+    image: bitnami/kafka:3.5.0
+    container_name: tradesense-kafka-2
+    ports:
+      - "29093:29093"
+      - "9093:9092"
+    environment:
+      KAFKA_CFG_NODE_ID: 2
+      KAFKA_CFG_PROCESS_ROLES: "broker,controller"
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka-1:9093,2@kafka-2:9093"
+      KAFKA_KRAFT_CLUSTER_ID: "6MOTDVUETh61ntQjswQdUQ"
+      KAFKA_CFG_LISTENERS: "INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:29093,CONTROLLER://0.0.0.0:9093"
+      KAFKA_CFG_ADVERTISED_LISTENERS: "INTERNAL://kafka-2:9092,EXTERNAL://localhost:29093"
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_CFG_NUM_PARTITIONS: 1
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+    volumes:
+      - kafka_2_data:/bitnami/kafka
+    restart: unless-stopped
+    networks:
+      - tradesense-net
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.4.0
+    container_name: tradesense-schema-registry
+    depends_on:
+      - kafka-1
+      - kafka-2
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka-1:9092,PLAINTEXT://kafka-2:9092
+    restart: unless-stopped
+    networks:
+      - tradesense-net
+
+  kafka-connect:
+    image: debezium/connect:2.5
+    container_name: tradesense-kafka-connect
+    depends_on:
+      - kafka-1
+      - kafka-2
+    ports:
+      - "8083:8083"
+    environment:
+      BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092
+      GROUP_ID: kafka-connect-group
+      CONFIG_STORAGE_TOPIC: connect-configs
+      OFFSET_STORAGE_TOPIC: connect-offsets
+      STATUS_STORAGE_TOPIC: connect-statuses
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
+    restart: unless-stopped
+    networks:
+      - tradesense-net
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:0.2.0
+    container_name: tradesense-kafka-ui
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - schema-registry
+      - kafka-connect
+    ports:
+      - "4040:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-1:9092,kafka-2:9092
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: connect
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://kafka-connect:8083
+    restart: unless-stopped
+    networks:
+      - tradesense-net
+
+  liquibase:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tradesense:local
+    container_name: tradesense-liquibase
+    depends_on:
+      postgres:
+        condition: service_started
+    command: ["java", "-jar", "/opt/tradesense/tradesense-liquibase.jar"]
+    environment:
+      TRADESENSE_DATABASE_URL: jdbc:postgresql://postgres:5432/tradesense
+      TRADESENSE_DATABASE_USERNAME: tradesense
+      TRADESENSE_DATABASE_PASSWORD: thekabi#123
+      SERVER_PORT: "8088"
+    networks:
+      - tradesense-net
+
+  ingestion-svc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tradesense:local
+    container_name: tradesense-ingestion-svc
+    depends_on:
+      postgres:
+        condition: service_started
+      liquibase:
+        condition: service_completed_successfully
+      kafka-1:
+        condition: service_started
+      kafka-2:
+        condition: service_started
+    command: ["java", "-jar", "/opt/tradesense/tradesense-ingestion-svc.jar"]
+    ports:
+      - "5051:5051"
+    environment:
+      SERVER_PORT: "5051"
+      TRADESENSE_DATABASE_URL: jdbc:postgresql://postgres:5432/tradesense
+      TRADESENSE_DATABASE_USERNAME: tradesense
+      TRADESENSE_DATABASE_PASSWORD: thekabi#123
+      TRADE_FILE_STORAGE_DIRECTORY: /opt/tradesense/data/trade-files
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092
+      TRACING_SAMPLING_PROBABILITY: "1.0"
+    restart: unless-stopped
+    networks:
+      - tradesense-net
+
+  trade-processor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tradesense:local
+    container_name: tradesense-trade-processor
+    depends_on:
+      kafka-1:
+        condition: service_started
+      kafka-2:
+        condition: service_started
+      validator-svc:
+        condition: service_started
+      postgres:
+        condition: service_started
+    command: ["java", "-jar", "/opt/tradesense/tradesense-trade-processor.jar"]
+    ports:
+      - "5052:5052"
+    environment:
+      SERVER_PORT: "5052"
+      TRADESENSE_DATABASE_URL: jdbc:postgresql://postgres:5432/tradesense
+      TRADESENSE_DATABASE_USERNAME: tradesense
+      TRADESENSE_DATABASE_PASSWORD: thekabi#123
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092
+      TRADESENSE_VALIDATOR_URI: http://validator-svc:5053
+      TRACING_SAMPLING_PROBABILITY: "1.0"
+    restart: unless-stopped
+    networks:
+      - tradesense-net
+
+  validator-svc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tradesense:local
+    container_name: tradesense-validator-svc
+    command: ["java", "-jar", "/opt/tradesense/tradesense-validator-svc.jar"]
+    ports:
+      - "5053:5053"
+    environment:
+      SERVER_PORT: "5053"
+      TRACING_SAMPLING_PROBABILITY: "1.0"
+    restart: unless-stopped
+    networks:
+      - tradesense-net
+
+  report-svc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tradesense:local
+    container_name: tradesense-report-svc
+    depends_on:
+      postgres:
+        condition: service_started
+      liquibase:
+        condition: service_completed_successfully
+    command: ["java", "-jar", "/opt/tradesense/tradesense-report-svc.jar"]
+    ports:
+      - "5054:5054"
+    environment:
+      SERVER_PORT: "5054"
+      TRADESENSE_DATABASE_URL: jdbc:postgresql://postgres:5432/tradesense
+      TRADESENSE_DATABASE_USERNAME: tradesense
+      TRADESENSE_DATABASE_PASSWORD: thekabi#123
+      TRACING_SAMPLING_PROBABILITY: "1.0"
+    restart: unless-stopped
+    networks:
+      - tradesense-net
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tradesense:local
+    container_name: tradesense-api-gateway
+    depends_on:
+      ingestion-svc:
+        condition: service_started
+      trade-processor:
+        condition: service_started
+      validator-svc:
+        condition: service_started
+      report-svc:
+        condition: service_started
+    command: ["java", "-jar", "/opt/tradesense/tradesense-api-gateway.jar"]
+    ports:
+      - "5050:5050"
+    environment:
+      SERVER_PORT: "5050"
+      TRADESENSE_INGESTION_URI: http://ingestion-svc:5051
+      TRADESENSE_TRADE_PROCESSOR_URI: http://trade-processor:5052
+      TRADESENSE_VALIDATOR_URI: http://validator-svc:5053
+      TRADESENSE_REPORT_URI: http://report-svc:5054
+      TRADESENSE_CORS_ORIGIN_PATTERN: "http://localhost:[*]"
+      TRACING_SAMPLING_PROBABILITY: "1.0"
+    restart: unless-stopped
+    networks:
+      - tradesense-net
+
+volumes:
+  postgres_data:
+  kafka_1_data:
+  kafka_2_data:
+
+networks:
+  tradesense-net:
+    driver: bridge
+

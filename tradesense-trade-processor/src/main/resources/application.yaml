@@ -1,0 +1,77 @@
+server:
+  port: ${SERVER_PORT:5052}
+
+spring:
+  application:
+    name: tradesense-trade-processor
+  datasource:
+    url: ${TRADESENSE_DATABASE_URL:jdbc:postgresql://localhost:5432/tradesense}
+    username: ${TRADESENSE_DATABASE_USERNAME:tradesense}
+    password: ${TRADESENSE_DATABASE_PASSWORD:thekabi#123}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.type.json_format_mapper: jackson3
+      hibernate.jdbc.time_zone: UTC
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092,localhost:29093}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:tradesense-trade-processor}
+      auto-offset-reset: ${KAFKA_AUTO_OFFSET_RESET:earliest}
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    listener:
+      ack-mode: record
+      observation-enabled: true
+    template:
+      observation-enabled: true
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
+
+management:
+  tracing:
+    propagation:
+      type: W3C
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+tradesense:
+  validator:
+    base-url: ${TRADESENSE_VALIDATOR_URI:http://localhost:5053}
+  kafka:
+    trade-events-topic: ${TRADESENSE_TRADE_EVENTS_TOPIC:tradesense-cdc}
+    dead-letter-topic: ${TRADESENSE_TRADE_EVENTS_DLT:tradesense-cdc.DLT}
+    consumer-name: ${TRADESENSE_KAFKA_CONSUMER_NAME:tradesense-trade-processor}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      validatorService:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+  timelimiter:
+    instances:
+      validatorService:
+        timeout-duration: 10s
+        cancel-running-future: true
