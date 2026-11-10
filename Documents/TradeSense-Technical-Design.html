@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TradeSense Technical Design</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      color: #1f2937;
+      background: #f8fafc;
+    }
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px 40px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      border: 1px solid #e5e7eb;
+    }
+    h1, h2, h3 { color: #0f172a; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid #d1d5db;
+      padding: 8px 10px;
+      vertical-align: top;
+      text-align: left;
+    }
+    th { background: #e2e8f0; }
+    code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
+    ul { line-height: 1.6; }
+    img {
+      display: block;
+      max-width: 100%;
+      margin: 20px auto;
+      border: 1px solid #e5e7eb;
+      background: white;
+    }
+    .small { font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1>TradeSense Technical Design Document</h1>
+
+    <h2>1. Project Brief</h2>
+    <p>TradeSense is an event-driven trade data processing platform designed to ingest trade files, validate trade quality, persist structured trade records, and expose reporting and streaming capabilities through a unified API gateway.</p>
+    <ul>
+      <li><strong>Ingestion Service:</strong> accepts uploaded trade files, stores metadata and raw records, and publishes processed events.</li>
+      <li><strong>Trade Processor:</strong> consumes Kafka events, normalizes trade records, stores trade state, and calls the validation service.</li>
+      <li><strong>Validator Service:</strong> applies business validation rules using Drools/KIE.</li>
+      <li><strong>Report Service:</strong> serves analytics and reporting queries over persisted trade data.</li>
+      <li><strong>API Gateway:</strong> exposes a single HTTP entry point and routes requests to the relevant backend services.</li>
+      <li><strong>Liquibase:</strong> manages database migrations and schema creation.</li>
+    </ul>
+
+    <h2>2. Service Layout</h2>
+    <table>
+      <thead>
+        <tr><th>Service</th><th>Primary Responsibility</th><th>Communication Pattern</th><th>Data Store</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>tradesense-api-gateway</td><td>API routing and external access</td><td>HTTP/REST, reactive routing</td><td>None</td></tr>
+        <tr><td>tradesense-ingestion-svc</td><td>File ingestion and raw payload capture</td><td>HTTP upload + Kafka publish</td><td>PostgreSQL</td></tr>
+        <tr><td>tradesense-trade-processor</td><td>Event consumption and trade processing</td><td>Kafka consumer + HTTP validation call</td><td>PostgreSQL</td></tr>
+        <tr><td>tradesense-validator-svc</td><td>Trade validation logic</td><td>HTTP REST</td><td>In-memory Drools rules</td></tr>
+        <tr><td>tradesense-report-svc</td><td>Query/report generation</td><td>HTTP/REST</td><td>PostgreSQL</td></tr>
+        <tr><td>tradesense-liquibase</td><td>Schema versioning and migration</td><td>JDBC</td><td>PostgreSQL</td></tr>
+      </tbody>
+    </table>
+
+    <h2>3. System Flow</h2>
+    <img src="TradeSense-Architecture-Diagram.svg" alt="TradeSense Architecture Diagram" />
+
+    <h2>4. Communication Model</h2>
+    <ul>
+      <li><strong>HTTP/REST:</strong> gateway and backend service communication, including processor-to-validator calls.</li>
+      <li><strong>Kafka:</strong> asynchronous event propagation from ingestion to processing.</li>
+      <li><strong>JDBC:</strong> persistence and schema migration with Liquibase.</li>
+      <li><strong>W3C Trace Context:</strong> distributed tracing across services.</li>
+    </ul>
+
+    <h2>5. Data Model and Table Design</h2>
+    <table>
+      <thead>
+        <tr><th>Table Name</th><th>Significance</th><th>Key Columns</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>ingestion_batch</td><td>Tracks uploaded file batches and processing status.</td><td>batch_id, batch_name, source_type, file_name, file_checksum, status</td></tr>
+        <tr><td>ingestion_record</td><td>Stores raw payload records per batch.</td><td>record_id, batch_id, source_type, source_system, raw_payload</td></tr>
+        <tr><td>trade</td><td>Canonical processed trade record.</td><td>id, ingestion_record_id, booking_system, trade_id, source_type, trade_status</td></tr>
+        <tr><td>trade_instrumentation</td><td>Trade price and quantity metadata.</td><td>id, trade_id, instrument_id, quantity, trade_price</td></tr>
+        <tr><td>trade_validation</td><td>Outcome and details of validation checks.</td><td>id, trade_id, validation_status, error_code, error_message, rule_name</td></tr>
+      </tbody>
+    </table>
+
+    <h2>6. Validation Architecture</h2>
+    <p>Trade validation uses Drools/KIE to execute business rules. The trade processor sends a validation request to the validator service, which loads the KIE container, inserts the trade facts, fires the rules, and returns a structured response containing violation details.</p>
+
+    <h2>7. Design Summary</h2>
+    <p>TradeSense is designed as a modular, event-driven trade processing platform that balances reliability, traceability, and business rule flexibility. The combination of Spring Boot services, Kafka messaging, Drools validation, PostgreSQL persistence, and an API gateway provides a clear and maintainable architecture.</p>
+
+    <h2>8. Technical Points</h2>
+    <ul>
+      <li><strong>Communication:</strong> synchronous HTTP for request/response and Kafka for asynchronous events.</li>
+      <li><strong>Protocols:</strong> REST, Kafka protocol, JDBC, and W3C tracing.</li>
+      <li><strong>Design Patterns:</strong> gateway pattern, event-driven processing, repository pattern, rule-engine pattern.</li>
+      <li><strong>Observability:</strong> Micrometer metrics, tracing, health endpoints, structured logging.</li>
+      <li><strong>Deployment:</strong> Docker Compose and containerized service startup order.</li>
+    </ul>
+  </div>
+</body>
+</html>
+
