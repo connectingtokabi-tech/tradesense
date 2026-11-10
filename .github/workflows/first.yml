@@ -5,6 +5,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Print greeting
-        run: echo "Hello World!"
+        run: | 
+           echo "Hello World!"
+           echo "This is a test of the tradesense-action-testing workflow."
       - name: Print goodbye
         run: echo "Done - bye!"
