@@ -1,0 +1,35 @@
+
+services:
+
+  # SonarQube local server
+  sonarqube:
+    image: sonarqube:community
+    container_name: sonarqube
+    ports:
+      - "9000:9000"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    restart: unless-stopped
+
+  # Veracode scanner
+  veracode-scanner:
+    image: veracode/veracode-cli:latest
+    container_name: veracode-scanner
+    profiles:
+      - security
+    working_dir: /workspace
+    volumes:
+      - ./source:/workspace
+      - ./reports:/reports
+    environment:
+      VERACODE_API_ID: ${VERACODE_API_ID}
+      VERACODE_API_KEY: ${VERACODE_API_KEY}
+    entrypoint: ["veracode"]
+    command: ["--help"]
+
+volumes:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:

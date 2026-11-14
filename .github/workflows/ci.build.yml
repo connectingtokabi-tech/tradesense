@@ -1,0 +1,87 @@
+
+name: Java CI - Build and Security Scan
+
+on:
+  push:
+    branches:
+      - '**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  ci-build:
+    name: Build, Test and Security
+    runs-on:  self-hosted
+
+    steps:
+      # 1. Checkout source code
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 2. Configure Java from repository
+      # Keep the Java version in .java-version
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      # 3. Build and execute JUnit tests
+      - name: Maven clean verify
+        run: mvn -B clean verify
+
+      # 4. SonarQube analysis
+      - name: SonarQube Scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          mvn -B sonar:sonar \
+            -Dsonar.host.url=$SONAR_HOST_URL \
+            -Dsonar.token=$SONAR_TOKEN \
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+
+      # 5. JFrog CLI setup
+      - name: Setup JFrog CLI
+        uses: jfrog/setup-jfrog-cli@v4
+        env:
+          JF_URL: ${{ secrets.JF_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+
+      # 6. JFrog Xray dependency audit
+      - name: JFrog Xray Audit
+        run: |
+          mkdir -p reports
+          jf audit > reports/xray-audit.txt 2>&1
+
+      # 7. Veracode static security scan
+      - name: Veracode Upload and Scan
+        uses: veracode/veracode-uploadandscan-action@0.2.8
+        with:
+          appname: ${{ vars.VERACODE_APP_NAME }}
+          createprofile: false
+          filepath: target/*.jar
+          version: ${{ github.sha }}
+          vid: ${{ secrets.VERACODE_API_ID }}
+          vkey: ${{ secrets.VERACODE_API_KEY }}
+          scantimeout: 30
+
+      # 8. Save reports even if a previous step fails
+      - name: Archive build evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-evidence-${{ github.run_number }}
+          path: |
+            target/surefire-reports/
+            target/failsafe-reports/
+            target/site/jacoco/
+            reports/
+          if-no-files-found: warn
+          retention-days: 90
