@@ -37,16 +37,12 @@ jobs:
 
       # 4. SonarQube analysis
       - name: Build and analyze
-        env:
-          SONAR_TOKEN: sqp_86a646bfb1ab7330feccee661f7c65d840163876
-          SONAR_HOST_URL: http://localhost:9000
         run: |
           mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
             -Dsonar.projectKey="connectingtokabi-tech_tradesense_ef93141e-4329-401d-8e5e-699b1748f5db" \
             -Dsonar.projectName="tradesense" \
             -Dsonar.host.url="http://localhost:9000" \
             -Dsonar.token="sqp_86a646bfb1ab7330feccee661f7c65d840163876"
-
       # 5. JFrog CLI setup
       - name: Setup JFrog CLI
         uses: jfrog/setup-jfrog-cli@v4
