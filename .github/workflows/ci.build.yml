@@ -1,4 +1,3 @@
-
 name: Java CI - Build and Security Scan
 
 on:
@@ -33,19 +32,29 @@ jobs:
           cache: maven
 
       # 3. Build and execute JUnit tests
+      - name: Cache SonarQube packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Cache Maven packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
       - name: Maven clean verify
         run: mvn -B clean verify
 
       # 4. SonarQube analysis
-      - name: SonarQube Scan
+      - name: Build and analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        run: |
-          mvn -B sonar:sonar \
-            -Dsonar.host.url=$SONAR_HOST_URL \
-            -Dsonar.token=$SONAR_TOKEN \
-            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=connectingtokabi-tech_tradesense_ef93141e-4329-401d-8e5e-699b1748f5db -Dsonar.projectName='tradesense'
 
       # 5. JFrog CLI setup
       - name: Setup JFrog CLI
