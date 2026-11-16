@@ -13,20 +13,52 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('overview')
 
   useEffect(() => {
-    const source = new EventSource(STREAM_URL)
-    setStreamState('connecting')
-    source.onopen = () => setStreamState('connected')
-    source.onerror = () => setStreamState(source.readyState === EventSource.CLOSED ? 'offline' : 'reconnecting')
-    source.addEventListener('trade-saved', (message) => {
+    let cancelled = false
+    let reconnectTimer: number | undefined
+    let source: EventSource | null = null
+
+    const handleTradeEvent = (message: MessageEvent<string>) => {
       try {
-        const notification = JSON.parse((message as MessageEvent<string>).data) as Trade
+        const notification = JSON.parse(message.data) as Trade
         setTrades((current) => [notification, ...current.filter((trade) => trade.ingestionRecordId !== notification.ingestionRecordId)])
         setLastUpdated(new Date())
       } catch (error) {
         console.error('Could not read trade stream event', error)
       }
-    })
-    return () => source.close()
+    }
+
+    const connect = () => {
+      if (cancelled) return
+
+      source = new EventSource(STREAM_URL)
+      source.onopen = () => {
+        setStreamState('connected')
+        if (reconnectTimer) {
+          window.clearTimeout(reconnectTimer)
+          reconnectTimer = undefined
+        }
+      }
+      source.onerror = () => {
+        if (source?.readyState === EventSource.CLOSED) {
+          setStreamState('offline')
+          source.close()
+          if (!cancelled) {
+            reconnectTimer = window.setTimeout(connect, 1500)
+          }
+          return
+        }
+        setStreamState('reconnecting')
+      }
+      source.addEventListener('trade-saved', handleTradeEvent as EventListener)
+    }
+
+    connect()
+
+    return () => {
+      cancelled = true
+      if (reconnectTimer) window.clearTimeout(reconnectTimer)
+      source?.close()
+    }
   }, [])
 
   const invalidCount = trades.filter((item) => (item.trade?.tradeStatus ?? item.tradeStatus) === 'INVALID').length

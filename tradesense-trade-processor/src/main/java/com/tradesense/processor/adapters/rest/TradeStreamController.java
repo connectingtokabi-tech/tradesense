@@ -30,10 +30,12 @@ public class TradeStreamController {
                         .event("trade-saved")
                         .id(notification.ingestionRecordId().toString())
                         .build());
+
         Flux<ServerSentEvent<TradeSavedNotification>> keepAlives = Flux.interval(Duration.ofSeconds(15))
                 .map(ignored -> ServerSentEvent.<TradeSavedNotification>builder()
                         .comment("keepalive")
                         .build());
+
         return Flux.merge(tradeEvents, keepAlives)
                 .doOnSubscribe(ignored -> log.info("Trade stream client connected"))
                 .doFinally(signal -> log.info("Trade stream client disconnected: signal={}", signal));
