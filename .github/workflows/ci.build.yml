@@ -58,11 +58,14 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path reports | Out-Null
 
-          $jfPath = (Get-Command jf.exe -ErrorAction SilentlyContinue)?.Source
-          if (-not $jfPath) {
-            $jfPath = (Get-Command jf -ErrorAction SilentlyContinue)?.Source
+          $jfCommand = Get-Command jf.exe -ErrorAction SilentlyContinue
+          if (-not $jfCommand) {
+            $jfCommand = Get-Command jf -ErrorAction SilentlyContinue
           }
-          if (-not $jfPath) {
+
+          if ($jfCommand) {
+            $jfPath = $jfCommand.Source
+          } else {
             $candidatePaths = @(
               "${env:ProgramFiles}\JFrog\jf.exe",
               "${env:ProgramFiles(x86)}\JFrog\jf.exe",
