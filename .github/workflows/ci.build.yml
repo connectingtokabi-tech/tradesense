@@ -31,51 +31,64 @@ jobs:
           java-version: 21
           cache: maven
 
-      # 3. Build and execute JUnit tests
-      - name: Maven clean verify
-        run: mvn -B clean verify
-
-      # 4. SonarQube analysis
-      - name: Build and analyze
+      # 3. Build, execute JUnit tests, and analyze with SonarQube
+      - name: Build, test and analyze
         shell: powershell
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
-          mvn.cmd -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar `
+          mvn.cmd -B clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar `
             "-Dsonar.projectKey=sonarqube-github" `
             "-Dsonar.projectName=sonarqube-github" `
             "-Dsonar.host.url=$env:SONAR_HOST_URL" `
             "-Dsonar.token=$env:SONAR_TOKEN"
 
-      # 5. JFrog CLI setup
+      # 4. JFrog CLI setup
+      - name: Setup JFrog CLI
+        uses: jfrog/setup-jfrog-cli@v4
+        env:
+          JF_URL: ${{ secrets.JF_URL }}
+          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
 
-      # 6. JFrog Xray dependency audit
+      # 5. JFrog Xray dependency audit
       - name: JFrog Xray Audit
         shell: powershell
         continue-on-error: false
         run: |
           New-Item -ItemType Directory -Force -Path reports | Out-Null
 
-          cmd.exe /d /c "jf audit > reports\xray-audit.txt 2>&1"
+          $jfPath = (Get-Command jf.exe -ErrorAction SilentlyContinue)?.Source
+          if (-not $jfPath) {
+            $jfPath = (Get-Command jf -ErrorAction SilentlyContinue)?.Source
+          }
+          if (-not $jfPath) {
+            $candidatePaths = @(
+              "${env:ProgramFiles}\JFrog\jf.exe",
+              "${env:ProgramFiles(x86)}\JFrog\jf.exe",
+              "$env:USERPROFILE\.jfrog\jf.exe"
+            )
+            $jfPath = $candidatePaths | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+          }
 
+          if (-not $jfPath) {
+            throw "JFrog CLI not found on PATH or in standard install locations."
+          }
+
+          Write-Host "Using JFrog CLI: $jfPath"
+
+          & $jfPath audit *> reports/xray-audit.txt
           $auditExitCode = $LASTEXITCODE
 
           Write-Host "JFrog audit exit code: $auditExitCode"
 
           if ($auditExitCode -ne 0) {
-              Write-Host "JFrog audit failed. Check reports/xray-audit.txt"
-              Get-Content reports/xray-audit.txt
-              exit $auditExitCode
+            Write-Host "JFrog audit failed. Check reports/xray-audit.txt"
+            Get-Content reports/xray-audit.txt
+            exit $auditExitCode
           }
 
           Write-Host "JFrog Xray audit completed successfully."
-
-      # 6. JFrog Xray dependency audit
-      - name: JFrog Xray Audit
-        run: |
-          mkdir -p reports
-          jf audit > reports/xray-audit.txt 2>&1
 
       # 7. Veracode static security scan
       - name: Veracode Upload and Scan
