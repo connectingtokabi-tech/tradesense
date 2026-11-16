@@ -43,8 +43,8 @@ jobs:
           SONAR_HOST_URL: http://localhost:9000
         run: |
           mvn.cmd -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar `
-            "-Dsonar.projectKey=connectingtokabi-tech_tradesense_ef93141e-4329-401d-8e5e-699b1748f5db" `
-            "-Dsonar.projectName=tradesense" `
+            "-Dsonar.projectKey=sonarqube-github" `
+            "-Dsonar.projectName=sonarqube-github" `
             "-Dsonar.host.url=http://localhost:9000" `
             "-Dsonar.token=sqp_2321b3b05550e8e0e4346dc0df3184dc5c37f4a9"
 
