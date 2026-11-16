@@ -39,21 +39,37 @@ jobs:
       - name: Build and analyze
         shell: powershell
         env:
-          SONAR_TOKEN: sqp_2321b3b05550e8e0e4346dc0df3184dc5c37f4a9
-          SONAR_HOST_URL: http://localhost:9000
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
           mvn.cmd -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar `
             "-Dsonar.projectKey=sonarqube-github" `
             "-Dsonar.projectName=sonarqube-github" `
-            "-Dsonar.host.url=http://localhost:9000" `
-            "-Dsonar.token=sqp_2321b3b05550e8e0e4346dc0df3184dc5c37f4a9"
+            "-Dsonar.host.url=$env:SONAR_HOST_URL" `
+            "-Dsonar.token=$env:SONAR_TOKEN"
 
       # 5. JFrog CLI setup
-      - name: Setup JFrog CLI
-        uses: jfrog/setup-jfrog-cli@v4
-        env:
-          JF_URL: ${{ secrets.JF_URL }}
-          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
+
+      # 6. JFrog Xray dependency audit
+      - name: JFrog Xray Audit
+        shell: powershell
+        continue-on-error: false
+        run: |
+          New-Item -ItemType Directory -Force -Path reports | Out-Null
+
+          cmd.exe /d /c "jf audit > reports\xray-audit.txt 2>&1"
+
+          $auditExitCode = $LASTEXITCODE
+
+          Write-Host "JFrog audit exit code: $auditExitCode"
+
+          if ($auditExitCode -ne 0) {
+              Write-Host "JFrog audit failed. Check reports/xray-audit.txt"
+              Get-Content reports/xray-audit.txt
+              exit $auditExitCode
+          }
+
+          Write-Host "JFrog Xray audit completed successfully."
 
       # 6. JFrog Xray dependency audit
       - name: JFrog Xray Audit
