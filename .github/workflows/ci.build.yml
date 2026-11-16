@@ -80,14 +80,36 @@ jobs:
 
           Write-Host "Using JFrog CLI: $jfPath"
 
-          & $jfPath audit *> reports/xray-audit.txt
-          $auditExitCode = $LASTEXITCODE
+          $outputLog = Join-Path (Get-Location) 'reports/xray-audit.txt'
+          $processInfo = New-Object System.Diagnostics.ProcessStartInfo
+          $processInfo.FileName = $jfPath
+          $processInfo.Arguments = 'audit'
+          $processInfo.RedirectStandardOutput = $true
+          $processInfo.RedirectStandardError = $true
+          $processInfo.UseShellExecute = $false
+          $processInfo.WorkingDirectory = (Get-Location).Path
 
+          $process = [System.Diagnostics.Process]::Start($processInfo)
+          $stdout = $process.StandardOutput.ReadToEnd()
+          $stderr = $process.StandardError.ReadToEnd()
+          $process.WaitForExit()
+
+          if ($stdout) {
+            [System.IO.File]::WriteAllText($outputLog, $stdout)
+          } else {
+            [System.IO.File]::WriteAllText($outputLog, '')
+          }
+
+          if ($stderr) {
+            [System.IO.File]::AppendAllText($outputLog, "`r`n--- STDERR ---`r`n$stderr")
+          }
+
+          $auditExitCode = $process.ExitCode
           Write-Host "JFrog audit exit code: $auditExitCode"
 
           if ($auditExitCode -ne 0) {
             Write-Host "JFrog audit failed. Check reports/xray-audit.txt"
-            Get-Content reports/xray-audit.txt
+            Get-Content $outputLog
             exit $auditExitCode
           }
 
