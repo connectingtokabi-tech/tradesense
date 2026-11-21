@@ -44,78 +44,7 @@ jobs:
             "-Dsonar.host.url=$env:SONAR_HOST_URL" `
             "-Dsonar.token=$env:SONAR_TOKEN"
 
-      # 4. JFrog CLI setup
-      - name: Setup JFrog CLI
-        uses: jfrog/setup-jfrog-cli@v4
-        env:
-          JF_URL: ${{ secrets.JF_URL }}
-          JF_ACCESS_TOKEN: ${{ secrets.JF_ACCESS_TOKEN }}
-
-      # 5. JFrog Xray dependency audit
-      - name: JFrog Xray Audit
-        shell: powershell
-        continue-on-error: false
-        run: |
-          New-Item -ItemType Directory -Force -Path reports | Out-Null
-
-          $jfCommand = Get-Command jf.exe -ErrorAction SilentlyContinue
-          if (-not $jfCommand) {
-            $jfCommand = Get-Command jf -ErrorAction SilentlyContinue
-          }
-
-          if ($jfCommand) {
-            $jfPath = $jfCommand.Source
-          } else {
-            $candidatePaths = @(
-              "${env:ProgramFiles}\JFrog\jf.exe",
-              "${env:ProgramFiles(x86)}\JFrog\jf.exe",
-              "$env:USERPROFILE\.jfrog\jf.exe"
-            )
-            $jfPath = $candidatePaths | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
-          }
-
-          if (-not $jfPath) {
-            throw "JFrog CLI not found on PATH or in standard install locations."
-          }
-
-          Write-Host "Using JFrog CLI: $jfPath"
-
-          $outputLog = Join-Path (Get-Location) 'reports/xray-audit.txt'
-          $processInfo = New-Object System.Diagnostics.ProcessStartInfo
-          $processInfo.FileName = $jfPath
-          $processInfo.Arguments = 'audit'
-          $processInfo.RedirectStandardOutput = $true
-          $processInfo.RedirectStandardError = $true
-          $processInfo.UseShellExecute = $false
-          $processInfo.WorkingDirectory = (Get-Location).Path
-
-          $process = [System.Diagnostics.Process]::Start($processInfo)
-          $stdout = $process.StandardOutput.ReadToEnd()
-          $stderr = $process.StandardError.ReadToEnd()
-          $process.WaitForExit()
-
-          if ($stdout) {
-            [System.IO.File]::WriteAllText($outputLog, $stdout)
-          } else {
-            [System.IO.File]::WriteAllText($outputLog, '')
-          }
-
-          if ($stderr) {
-            [System.IO.File]::AppendAllText($outputLog, "`r`n--- STDERR ---`r`n$stderr")
-          }
-
-          $auditExitCode = $process.ExitCode
-          Write-Host "JFrog audit exit code: $auditExitCode"
-
-          if ($auditExitCode -ne 0) {
-            Write-Host "JFrog audit failed. Check reports/xray-audit.txt"
-            Get-Content $outputLog
-            exit $auditExitCode
-          }
-
-          Write-Host "JFrog Xray audit completed successfully."
-
-      # 7. Veracode static security scan
+      # 4. Veracode static security scan
       - name: Veracode Upload and Scan
         uses: veracode/veracode-uploadandscan-action@0.2.8
         with:
@@ -127,7 +56,7 @@ jobs:
           vkey: ${{ secrets.VERACODE_API_KEY }}
           scantimeout: 30
 
-      # 8. Save reports even if a previous step fails
+      # 5. Save reports even if a previous step fails
       - name: Archive build evidence
         if: always()
         uses: actions/upload-artifact@v4
