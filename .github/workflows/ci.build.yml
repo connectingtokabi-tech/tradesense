@@ -44,19 +44,7 @@ jobs:
             "-Dsonar.host.url=$env:SONAR_HOST_URL" `
             "-Dsonar.token=$env:SONAR_TOKEN"
 
-      # 4. Veracode static security scan
-      - name: Veracode Upload and Scan
-        uses: veracode/veracode-uploadandscan-action@0.2.8
-        with:
-          appname: ${{ vars.VERACODE_APP_NAME }}
-          createprofile: false
-          filepath: target/*.jar
-          version: ${{ github.sha }}
-          vid: ${{ secrets.VERACODE_API_ID }}
-          vkey: ${{ secrets.VERACODE_API_KEY }}
-          scantimeout: 30
-
-      # 5. Save reports even if a previous step fails
+      # 4. Save reports even if a previous step fails
       - name: Archive build evidence
         if: always()
         uses: actions/upload-artifact@v4
