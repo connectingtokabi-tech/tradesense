@@ -20,6 +20,8 @@ spring:
               - uri: ${TRADESENSE_VALIDATOR_URI:http://localhost:5053}
             tradesense-report-svc:
               - uri: ${TRADESENSE_REPORT_URI:http://localhost:5054}
+            tradesense-auth-server:
+              - uri: ${TRADESENSE_AUTH_URI:http://localhost:5055}
     gateway:
       server:
         webflux:
@@ -58,6 +60,11 @@ spring:
               uri: ${TRADESENSE_REPORT_URI:http://localhost:5054}
               predicates:
                 - Path=/api/reports/**
+
+            - id: tradesense-auth-server
+              uri: ${TRADESENSE_AUTH_URI:http://localhost:5055}
+              predicates:
+                - Path=/api/auth/**,/login,/logout
 
 management:
   tracing:

@@ -1,0 +1,3 @@
+# Replace this file with the JFrog Enterprise Plus license key or license certificate.
+# Do not commit real licenses to source control.
+

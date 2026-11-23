@@ -246,6 +246,32 @@ services:
     networks:
       - tradesense-net
 
+  auth-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: tradesense:local
+    container_name: tradesense-auth-server
+    command: ["java", "-jar", "/opt/tradesense/tradesense-auth-server.jar"]
+    depends_on:
+      postgres:
+        condition: service_started
+      liquibase:
+        condition: service_completed_successfully
+    ports:
+      - "5055:5055"
+    environment:
+      SERVER_PORT: "5055"
+      TRADESENSE_AUTH_USERNAME: tradesense
+      TRADESENSE_AUTH_PASSWORD: ${TRADESENSE_AUTH_PASSWORD:?Set TRADESENSE_AUTH_PASSWORD from tradesense_auth_password.txt}
+      TRADESENSE_AUTH_ISSUER: http://localhost:5055
+      TRADESENSE_DATABASE_URL: jdbc:postgresql://postgres:5432/tradesense
+      TRADESENSE_DATABASE_USERNAME: tradesense
+      TRADESENSE_DATABASE_PASSWORD: ${TRADESENSE_DATABASE_PASSWORD:?Set TRADESENSE_DATABASE_PASSWORD from tradesense_database_password.txt}
+    restart: unless-stopped
+    networks:
+      - tradesense-net
+
   api-gateway:
     build:
       context: .
@@ -261,6 +287,8 @@ services:
         condition: service_started
       report-svc:
         condition: service_started
+      auth-server:
+        condition: service_started
     command: ["java", "-jar", "/opt/tradesense/tradesense-api-gateway.jar"]
     ports:
       - "5050:5050"
@@ -270,6 +298,7 @@ services:
       TRADESENSE_TRADE_PROCESSOR_URI: http://trade-processor:5052
       TRADESENSE_VALIDATOR_URI: http://validator-svc:5053
       TRADESENSE_REPORT_URI: http://report-svc:5054
+      TRADESENSE_AUTH_URI: http://auth-server:5055
       TRADESENSE_CORS_ORIGIN_PATTERN: "http://localhost:[*]"
       TRACING_SAMPLING_PROBABILITY: "1.0"
     restart: unless-stopped

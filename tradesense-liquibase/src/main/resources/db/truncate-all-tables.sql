@@ -14,6 +14,11 @@ TRUNCATE TABLE
     trade_instrumentation,
     trade,
     ingestion_record,
-    ingestion_batch
+    ingestion_batch,
+    app_authority,
+    app_user,
+    oauth2_authorization_consent,
+    oauth2_authorization,
+    oauth2_registered_client
 RESTART IDENTITY CASCADE;
 

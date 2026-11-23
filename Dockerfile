@@ -10,7 +10,7 @@ COPY tradesense-api-gateway ./tradesense-api-gateway
 COPY tradesense-trade-processor ./tradesense-trade-processor
 COPY tradesense-validator-svc ./tradesense-validator-svc
 COPY tradesense-report-svc ./tradesense-report-svc
-COPY tradesense-ui ./tradesense-ui
+COPY tradesense-auth-server ./tradesense-auth-server
 
 RUN chmod +x mvnw && ./mvnw -q -DskipTests package
 
@@ -23,8 +23,8 @@ COPY --from=build /workspace/tradesense-liquibase/target/tradesense-liquibase-*.
 COPY --from=build /workspace/tradesense-trade-processor/target/tradesense-trade-processor-*.jar /opt/tradesense/tradesense-trade-processor.jar
 COPY --from=build /workspace/tradesense-validator-svc/target/tradesense-validator-svc-*.jar /opt/tradesense/tradesense-validator-svc.jar
 COPY --from=build /workspace/tradesense-report-svc/target/tradesense-report-svc-*.jar /opt/tradesense/tradesense-report-svc.jar
+COPY --from=build /workspace/tradesense-auth-server/target/tradesense-auth-server-*.jar /opt/tradesense/tradesense-auth-server.jar
 
 RUN mkdir -p /opt/tradesense/data/trade-files
 
 CMD ["bash"]
-

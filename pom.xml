@@ -25,6 +25,7 @@
         <module>tradesense-trade-processor</module>
         <module>tradesense-validator-svc</module>
         <module>tradesense-report-svc</module>
+        <module>tradesense-auth-server</module>
     </modules>
 
     <properties>

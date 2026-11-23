@@ -33,3 +33,4 @@ build/
 .vscode/
 
 tradesense_database_password.txt
+tradesense_auth_password.txt

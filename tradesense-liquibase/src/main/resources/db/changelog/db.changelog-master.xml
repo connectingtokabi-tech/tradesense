@@ -11,4 +11,7 @@
     <include file="db/changelog/changes/005-create-spring-batch-tables.sql"/>
     <include file="db/changelog/changes/006-add-traceparent.sql"/>
     <include file="db/changelog/changes/007-allow-invalid-trade-data.sql"/>
+    <include file="db/changelog/changes/008-create-auth-user-tables.sql"/>
+    <include file="db/changelog/changes/009-create-oauth2-registration-table.sql"/>
+    <include file="db/changelog/changes/010-create-oauth2-pkce-sample.sql"/>
 </databaseChangeLog>
