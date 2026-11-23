@@ -5,7 +5,7 @@
     "database.hostname": "host.docker.internal",
     "database.port": "5432",
     "database.user": "tradesense",
-    "database.password": "thekabi#123",
+    "database.password": "${env:TRADESENSE_DATABASE_PASSWORD}",
     "database.dbname": "tradesense",
     "database.server.name": "tradesense",
     "topic.prefix": "tradesense-cdc",

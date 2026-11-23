@@ -7,8 +7,8 @@ spring:
 
   datasource:
     url: jdbc:postgresql://localhost:5432/tradesense
-    username: tradesense
-    password: "thekabi#123"
+    username: ${TRADESENSE_DATABASE_USERNAME:tradesense}
+    password: ${TRADESENSE_DATABASE_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:

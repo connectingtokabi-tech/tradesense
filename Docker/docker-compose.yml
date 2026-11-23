@@ -20,7 +20,7 @@ services:
     environment:
       POSTGRES_DB:  tradesense
       POSTGRES_USER: tradesense
-      POSTGRES_PASSWORD: thekabi#123
+      POSTGRES_PASSWORD: ${TRADESENSE_DATABASE_PASSWORD:?Set TRADESENSE_DATABASE_PASSWORD from tradesense_database_password.txt}
     ports:
       # This exposes the database to your host machine on port 5432
       - "5432:5432"

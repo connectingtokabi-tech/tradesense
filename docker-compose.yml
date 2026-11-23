@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: tradesense
       POSTGRES_USER: tradesense
-      POSTGRES_PASSWORD: thekabi#123
+      POSTGRES_PASSWORD: ${TRADESENSE_DATABASE_PASSWORD:?Set TRADESENSE_DATABASE_PASSWORD from tradesense_database_password.txt}
     ports:
       - "5432:5432"
     volumes:
@@ -101,6 +101,9 @@ services:
       CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
       CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
       CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
+      TRADESENSE_DATABASE_PASSWORD: ${TRADESENSE_DATABASE_PASSWORD:?Set TRADESENSE_DATABASE_PASSWORD from tradesense_database_password.txt}
+      CONNECT_CONFIG_PROVIDERS: env
+      CONNECT_CONFIG_PROVIDERS_ENV_CLASS: org.apache.kafka.common.config.provider.EnvVarConfigProvider
     restart: unless-stopped
     networks:
       - tradesense-net
@@ -138,7 +141,7 @@ services:
     environment:
       TRADESENSE_DATABASE_URL: jdbc:postgresql://postgres:5432/tradesense
       TRADESENSE_DATABASE_USERNAME: tradesense
-      TRADESENSE_DATABASE_PASSWORD: thekabi#123
+      TRADESENSE_DATABASE_PASSWORD: ${TRADESENSE_DATABASE_PASSWORD:?Set TRADESENSE_DATABASE_PASSWORD from tradesense_database_password.txt}
       SERVER_PORT: "8088"
     networks:
       - tradesense-net
@@ -165,7 +168,7 @@ services:
       SERVER_PORT: "5051"
       TRADESENSE_DATABASE_URL: jdbc:postgresql://postgres:5432/tradesense
       TRADESENSE_DATABASE_USERNAME: tradesense
-      TRADESENSE_DATABASE_PASSWORD: thekabi#123
+      TRADESENSE_DATABASE_PASSWORD: ${TRADESENSE_DATABASE_PASSWORD:?Set TRADESENSE_DATABASE_PASSWORD from tradesense_database_password.txt}
       TRADE_FILE_STORAGE_DIRECTORY: /opt/tradesense/data/trade-files
       KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092
       TRACING_SAMPLING_PROBABILITY: "1.0"
@@ -195,7 +198,7 @@ services:
       SERVER_PORT: "5052"
       TRADESENSE_DATABASE_URL: jdbc:postgresql://postgres:5432/tradesense
       TRADESENSE_DATABASE_USERNAME: tradesense
-      TRADESENSE_DATABASE_PASSWORD: thekabi#123
+      TRADESENSE_DATABASE_PASSWORD: ${TRADESENSE_DATABASE_PASSWORD:?Set TRADESENSE_DATABASE_PASSWORD from tradesense_database_password.txt}
       KAFKA_BOOTSTRAP_SERVERS: kafka-1:9092,kafka-2:9092
       TRADESENSE_VALIDATOR_URI: http://validator-svc:5053
       TRACING_SAMPLING_PROBABILITY: "1.0"
@@ -237,7 +240,7 @@ services:
       SERVER_PORT: "5054"
       TRADESENSE_DATABASE_URL: jdbc:postgresql://postgres:5432/tradesense
       TRADESENSE_DATABASE_USERNAME: tradesense
-      TRADESENSE_DATABASE_PASSWORD: thekabi#123
+      TRADESENSE_DATABASE_PASSWORD: ${TRADESENSE_DATABASE_PASSWORD:?Set TRADESENSE_DATABASE_PASSWORD from tradesense_database_password.txt}
       TRACING_SAMPLING_PROBABILITY: "1.0"
     restart: unless-stopped
     networks:
@@ -281,4 +284,3 @@ volumes:
 networks:
   tradesense-net:
     driver: bridge
-

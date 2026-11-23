@@ -31,3 +31,5 @@ build/
 
 ### VS Code ###
 .vscode/
+
+tradesense_database_password.txt
